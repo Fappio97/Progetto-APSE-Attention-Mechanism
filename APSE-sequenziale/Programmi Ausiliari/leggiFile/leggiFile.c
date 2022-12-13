@@ -81,7 +81,7 @@ int main() {
     d = opendir("input/");
     if (d) {
         while ((dir = readdir(d)) != NULL)
-            if(strncmp("test", dir->d_name, 4) == 0 || strncmp("out32", dir->d_name, 5) == 0) {
+            if(strncmp("test", dir->d_name, 4) == 0 || strncmp("out", dir->d_name, 3) == 0) {
                 printf("%s\n", dir->d_name);
                 convertFormat(dir->d_name);
             }

@@ -1,13 +1,12 @@
-// ./a.out -ds ../leggiFile/input/test_2048_48_32.ds -wq ../leggiFile/input/test_48_32_32.wq -wk ../leggiFile/input/test_48_32_32.wk -wv ../leggiFile/input/test_48_32_32.wv -bq ../leggiFile/input/test_32_32.bq -bk ../leggiFile/input/test_32_32.bk -bv ../leggiFile/input/test_32_32.bv -si 2 -n 1
 /**************************************************************************************
 * 
 * CdL Magistrale in Ingegneria Informatica
 * Corso di Architetture e Programmazione dei Sistemi di Elaborazione - a.a. 2020/21
 * 
-* Progetto dell'algoritmo Attention mechanism 221 231 a
-* in linguaggio assembly x86-32 + SSE
+* Progetto dell'algoritmo Attention Mechanism 221 231 a
+* in linguaggio assembly x86-64 + SSE
 * 
-* Fabrizio Angiulli, novembre 2022
+* Fabrizio Angiulli, aprile 2019
 * 
 **************************************************************************************/
 
@@ -27,16 +26,16 @@
 * 
 * potrebbe essere necessario installare le seguenti librerie:
 * 
-*    sudo apt-get install lib32gcc-4.8-dev (o altra versione)
+*    sudo apt-get install lib64gcc-4.8-dev (o altra versione)
 *    sudo apt-get install libc6-dev-i386
 * 
 * Per generare il file eseguibile:
 * 
-* nasm -f elf32 att32.nasm && gcc -m32 -msse -O0 -no-pie sseutils32.o att32.o att32c.c -o att32c -lm && ./att32c $pars
+* nasm -f elf64 fss64.nasm && gcc -m64 -msse -O0 -no-pie sseutils64.o fss64.o fss64c.c -o fss64c -lm && ./fss64c $pars
 * 
 * oppure
 * 
-* ./runatt32
+* ./runfss64
 * 
 */
 
@@ -48,43 +47,27 @@
 #include <libgen.h>
 #include <xmmintrin.h>
 
-#define	type		float
+#define	type		double
 #define	MATRIX		type*
 #define	VECTOR		type*
 
 typedef struct {
-	// Un dataset è un insieme di N tensori, ossia matrici di dimensione s × n × d.
-	MATRIX ds; 	// dataset (N x s x n x d) 
-
-	MATRIX wq; 	// pesi WQ (d x n)
-	MATRIX wk; 	// pesi WK (d x n)
-	MATRIX wv; 	// pesi WV (d x n)
-
+	MATRIX ds; 	// dataset
+	MATRIX wq; 	// pesi WQ
+	MATRIX wk; 	// pesi WK
+	MATRIX wv; 	// pesi WV
 	MATRIX out;	// matrice contenente risultato (N x nn)
-
-	VECTOR bq; 	// pesi bq (n)
-	VECTOR bk; 	// pesi bk (n)
-	VECTOR bv; 	// pesi bv (n)
-
-	int N;		// numero di righe del dataset 
-				// preso dinamicamente dal file
-
-	// tensore dimensione (s x n x d)
+	VECTOR bq; 	// pesi bq
+	VECTOR bk; 	// pesi bk
+	VECTOR bv; 	// pesi bv
+	int N;		// numero di righe del dataset
 	int s; 		// prima dimensione del tensore S
 	int n; 		// seconda dimensione del tensore S
 	int d; 		// terza dimensione del tensore S
-
-
-	// ns =  numero di righe del dataset / prima dimensione del tensore S * seconda dimensione del tensore S
-	// numero di tensori nel dataset, tale dato cambia in base al parametro dato in input
 	int ns; 	// numero di tensori nel dataset
-
-	// seconda dimensione delle matrici dei pesi
 	int nn;		// numero di neuroni
-
-	// questi sono parametri per debug
-	int display;	// stampa a video
-	int silent;		// stampa silezionsa (se è falso, stampa il nome dei file da cui prendo i valori in input)
+	int display;
+	int silent;
 } params;
 
 /*
@@ -101,17 +84,14 @@ typedef struct {
 * 
 */
 
-// acquiring an aligned block of memory
 void* get_block(int size, int elements) { 
-	return _mm_malloc(elements*size,16); 
+	return _mm_malloc(elements*size,32); 
 }
 
-// free an aligned block of memory
 void free_block(void* p) { 
 	_mm_free(p);
 }
 
-// 
 MATRIX alloc_matrix(int rows, int cols) {
 	return (MATRIX) get_block(sizeof(type),rows*cols);
 }
@@ -132,21 +112,13 @@ void dealloc_matrix(MATRIX mat) {
 * 	primi 4 byte: numero di righe (N) --> numero intero
 * 	successivi 4 byte: numero di colonne (M) --> numero intero
 * 	successivi N*M*4 byte: matrix data in row-major order --> numeri floating-point a precisione singola
-*
-*
-*   foto nel git
-*
-*	1 2 3
-*	1 2 3 -> N M 1 2 3 1 2 3 1 2 3  
-*	1 2 3
-*
+* 
 *****************************************************************************
 *	Se lo si ritiene opportuno, � possibile cambiare la codifica in memoria
 * 	della matrice. 
 *****************************************************************************
 * 
 */
-
 MATRIX load_data(char* filename, int *n, int *k) {
 	FILE* fp;
 	int rows, cols, status, i;
@@ -255,19 +227,19 @@ MATRIX prodottoMatriciBias(MATRIX DS, int a, int b, int avanza_tensore, int avan
 }
 
 // la funzione della traccia (punto 3)
-float funzione(float value) {
+double funzione(double value) {
 
     int x = -1;
     if(value >= 0)
         x = 1;
 
-    float result = (x *((-1/(value + 2)) + 0.5 )) + 0.5;
+    double result = (x *((-1/(value + 2)) + 0.5 )) + 0.5;
 
     return result;
 }
 
 // funzione che fa il prodotto fra matrice e matrice trasposta, poi divisione e applicazione della funzione
-MATRIX prodottoMatriciInversa(MATRIX A, MATRIX B, float radice, int n, int d) {
+MATRIX prodottoMatriciInversa(MATRIX A, MATRIX B, double radice, int n, int d) {
     // la matrice risultate tra il prodotto di matrice avrà dimensione n x n
     MATRIX output = alloc_matrix(n, n);
 
@@ -294,12 +266,12 @@ void salvaRisultato(MATRIX out, int a, int b, int avanza_tensore, int avanza_mat
 
 // ######################################### COMPUTAZIONE NOSTRA ################################
 
-void att(params* input) {
+void att(params* input){
 	// -------------------------------------------------
 	// Codificare qui l'algoritmo Attention mechanism
 	// -------------------------------------------------
 
-	float radice = sqrt(input->d);
+	double radice = sqrt(input->d);
 	MATRIX Q;
  	MATRIX K;
  	MATRIX V;
@@ -357,20 +329,6 @@ void att(params* input) {
     }
 }
 
-void dealloca(params* input) {
-	free(input->wv);
-	free(input->wk);
-	free(input->wq);
-	free(input->bq);
-	free(input->bk);
-	free(input->bv);
-	free(input->ds);
-	free(input->out);
-	free(input);
-
-	// printf("%p", input->wv);
-}
-
 int main(int argc, char** argv) {
 
 	char fname[256];
@@ -389,9 +347,6 @@ int main(int argc, char** argv) {
 	//
 
 	params* input = malloc(sizeof(params));
-
-	// NOSTRA: 96 size
-	// printf("len params %d\n", (int) sizeof(params));
 
 	input->ds = NULL;
 	input->wq = NULL;
@@ -576,13 +531,9 @@ int main(int argc, char** argv) {
 	input->ns = (int) ceil((double) input->N / (input->s * input->n));
 
 	// Caricamento matrici livelli
-	// n è una variabile locale che prende la dimensione da file
-	// e saranno il numero di righe della matrice dei pesi.
-	// verifica poi se può fare il prodotto tra matrici , ovvero alla d
 	int n, nn;
 	input->wq = load_data(wqfilename, &n, &input->nn);
 
-	// controllo se posso fare il prodotto fra matrici
 	if(input->d != n){
 		printf("Invalid wq size!\n");
 		exit(1);
@@ -639,9 +590,9 @@ int main(int argc, char** argv) {
 		printf("bK file name: '%s'\n", bkfilename);
 		printf("bV file name: '%s'\n", bvfilename);
 		printf("Dataset row number: %d\n", input->N);
-		printf("Tensor first demenTion: %d\n", input->s);
-		printf("Tensor second demenTion: %d\n", input->n);
-		printf("Tensor third demenTion: %d\n", input->d);
+		printf("Tensor first dimention: %d\n", input->s);
+		printf("Tensor second dimention: %d\n", input->n);
+		printf("Tensor third dimention: %d\n", input->d);
 		printf("Dataset block number: %d\n", input->ns);
 		printf("Layer neuron number: %d\n", input->nn);
 	}
@@ -653,7 +604,7 @@ int main(int argc, char** argv) {
 	//
 	// Attention Mechanism
 	//
-	
+
 	t = clock();
 	att(input);
 	t = clock() - t;
@@ -667,7 +618,6 @@ int main(int argc, char** argv) {
 	//
 	// Salva il risultato
 	//
-
 	sprintf(fname, "out32_%d_%d_%d_%d.ds2", input->N, input->s, input->n, input->d);
 	save_data(fname, input->out, input->N, input->nn);
 	if(input->display){
@@ -687,8 +637,6 @@ int main(int argc, char** argv) {
 
 	if(!input->silent)
 		printf("\nDone.\n");
-
-	dealloca(input);
 
 	return 0;
 }
