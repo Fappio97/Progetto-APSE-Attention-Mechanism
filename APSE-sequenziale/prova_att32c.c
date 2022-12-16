@@ -193,58 +193,17 @@ extern void prova(params *input);
 
 // ######################################### COMPUTAZIONE NOSTRA ################################
 // funzione che stampa una matrice
-// void stampaMatrice(MATRIX A, int a, int n, int d)
-// {
-// 	for (int x = a; x < n; ++x)
-// 	{
-// 		printf("Riga %d\n", x);
-// 		for (int y = 0; y < d; ++y)
-// 			printf("%f ", A[d * x + y]);
-// 		printf("\n");
-// 	}
-// 	printf("\n");
-// }
-
-// funzione che fa un prodotto tra matrici
-// MATRIX prodottoMatrici(MATRIX A, MATRIX B, int n, int nn)
-// {
-// 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
-// 	MATRIX output = alloc_matrix(n, nn);
-
-// 	for (int i = 0; i < n; ++i)
-// 	{
-// 		for (int j = 0; j < nn; ++j)
-// 		{
-// 			output[nn * i + j] = 0;
-// 			for (int x = 0; x < n; ++x)
-// 			{
-// 				output[nn * i + j] += A[n * i + x] * B[nn * x + j];
-// 			}
-// 		}
-// 	}
-
-// 	return output;
-// }
-
-// // funzione che fa un prodotto fra matrici e somma il bias
-// MATRIX prodottoMatriciBias(MATRIX DS, MATRIX pesi, VECTOR bias, int avanza_tensore_per_indice, int avanza_matrice_per_indice, int n, int d, int nn)
-// {
-// 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
-// 	MATRIX output = alloc_matrix(n, nn);
-
-// 	for (int i = 0; i < n; ++i)
-// 	{
-// 		for (int j = 0; j < nn; ++j)
-// 		{
-// 			output[nn * i + j] = 0;
-// 			for (int x = 0; x < d; ++x)
-// 				output[nn * i + j] += DS[d * i + x + avanza_tensore_per_indice + avanza_matrice_per_indice] * pesi[nn * x + j];
-// 			output[nn * i + j] += bias[j];
-// 		}
-// 	}
-
-// 	return output;
-// }
+void stampaMatrice(MATRIX A, int a, int n, int d)
+{
+	for (int x = a; x < n; ++x)
+	{
+		printf("Riga %d\n", x);
+		for (int y = 0; y < d; ++y)
+			printf("%f ", A[d * x + y]);
+		printf("\n");
+	}
+	printf("\n");
+}
 
 void prodottoAllMatriciBias(MATRIX Q, MATRIX K, MATRIX V, MATRIX ds, MATRIX wq, MATRIX wk, MATRIX wv, VECTOR bq, VECTOR bk, VECTOR bv, int avanza, int n, int nn, int d)
 {
@@ -306,6 +265,39 @@ void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice,
 			intermedio[n_x_i + j] = funzione(a);
 		}
 	}
+
+}
+
+// funzione che fa un prodotto tra matrici e le salva su input->output
+void terzaQuarta(MATRIX output, MATRIX A, MATRIX B, MATRIX C, float radice, int avanza, int n, int nn)
+{
+	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
+	MATRIX support = alloc_matrix(n, n); 
+	float y;
+	float a;
+
+	for (int i = 0; i < n; ++i)
+	{
+		int nn_x_i = nn * i;
+		int n_x_i = n * i;
+		for (int j = 0; j < n; ++j)
+		{
+			a = 0;
+			for (int x = 0; x < nn; ++x)
+				a += A[nn_x_i + x] * B[nn * j + x];
+			a /= radice;
+			support[n_x_i + j] = funzione(a);
+		}
+
+		int indx_out = nn_x_i + avanza;
+		for (int j = 0; j < nn; ++j)
+		{
+			y = 0;
+			for (int x = 0; x < n; ++x)
+				y += support[n_x_i + x] * C[nn * x + j];
+			output[indx_out + j] = y;
+		}
+	}
 }
 
 // funzione che fa un prodotto tra matrici e le salva su input->output
@@ -329,9 +321,9 @@ void prodottoMatriciESalva(MATRIX output, MATRIX A, MATRIX B, int avanza, int n,
 
 void deallocaAllMatrici(MATRIX Q, MATRIX K, MATRIX V, MATRIX intermedio)
 {
-	dealloc_matrix(Q);
-	dealloc_matrix(K);
-	dealloc_matrix(V);
+	free(Q);
+	free(K);
+	free(V);
 	dealloc_matrix(intermedio);
 }
 
@@ -355,17 +347,18 @@ void att(params *input)
 	{
 		for (int j = 0; j < input->s; ++j)
 		{
-
+			MATRIX intermedio = alloc_matrix(input->n, input->n);
 			MATRIX Q = alloc_matrix(input->n, input->nn);
 			MATRIX K = alloc_matrix(input->n, input->nn);
 			MATRIX V = alloc_matrix(input->n, input->nn);
-			MATRIX intermedio = alloc_matrix(input->n, input->n);
 
 			// Q = prodottoMatriciBias(input->ds, input->wq, input->bq, avanza_tensore_per_indice, avanza_matrice_per_indice, input->n, input->d, input->nn);
 			// K = prodottoMatriciBias(input->ds, input->wk, input->bk, avanza_tensore_per_indice, avanza_matrice_per_indice, input->n, input->d, input->nn);
 			// V = prodottoMatriciBias(input->ds, input->wv, input->bv, avanza_tensore_per_indice, avanza_matrice_per_indice, input->n, input->d, input->nn);
 
 			prodottoAllMatriciBias(Q, K, V, input->ds, input->wq, input->wk, input->wv, input->bq, input->bk, input->bv, (i * avanza_tensore) + (j * avanza_matrice), input->n, input->nn, input->d);
+			// prodottoAllMatriciBiasEdInversa(Q, K, V, intermedio, input->ds, input->wq, input->wk, input->wv, input->bq, input->bk, input->bv, radice, (i * avanza_tensore) + (j * avanza_matrice), input->n, input->nn, input->d);
+			// prodottoAllMatriciBias(Q, K, V, input, avanza_tensore_per_indice, avanza_matrice_per_indice);
 
 			// if(j == 1) {
 			// 	// printf("MATRICE Q\n");
@@ -389,8 +382,7 @@ void att(params *input)
 
 			// dealloc_matrix(Q);
 
-			// K diventa il nostro S^ nello pseudocodice della traccia
-			// tanto non mi serve più il contenuto dentro Q
+			//terzaQuarta(input->out, Q, K, V, radice, (i * avanza_tensore_out) + (j * avanza_matrice_out), input->n, input->nn);
 
 			prodottoMatriciESalva(input->out, intermedio, V, (i * avanza_tensore_out) + (j * avanza_matrice_out), input->n, input->nn);
 
