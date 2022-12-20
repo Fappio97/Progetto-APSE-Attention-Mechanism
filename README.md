@@ -5,7 +5,7 @@ Per eseguire la parte sequenziale descrivo diverse fasi.
 1) Esecuzione dell'algoritmo.
     Entriamo nella cartella "APSE-sequenziale" ed eseguiamo i seguenti comandi:
   - gcc att32c.c -lm
-  - ./a.out -ds test_2048_48_32.ds -wq test_48_32_32.wq -wk test_48_32_32.wk -wv test_48_32_32.wv -bq test_32_32.bq -bk test_32_32.bk -bv test_32_32.bv -si 8 -n 6
+  - ./a.out -ds test_2048_48_32.ds -wq test_48_32_32.wq -wk test_48_32_32.wk -wv test_48_32_32.wv -bq test_32_32.bq -bk test_32_32.bk -bv test_32_32.bv -si 8 -n 64
           
 2) Spostiamo il file che si è appena generato nella stessa cartella "out32_2048_8_64_48.ds2" in Programmi\ Ausiliari/leggiFile/input. Se già presente sovrascrivilo.
 
