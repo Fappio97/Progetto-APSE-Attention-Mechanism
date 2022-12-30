@@ -302,19 +302,12 @@ void att(params *input)
 	int max_threads = omp_get_max_threads();
 	// printf("MAX THREADS %d\n", max_threads);
 
-	// pararellizo il for, impostando il numero di thread al massimo numero di processi allocabili sulla macchina
-	// in cui si avvia il processo. La clausola collapse mi serve per collassare i nested for in un unico
-	// grande ciclo, in modo tale che se abbiamo più processi li sfruttiamo.
-
-	// creazione della regione parallela impostando il numero di thread per il massimo numero di thread
-	// allocabili sulla macchina in cui avviamo il programma. Non specifico le variabili passate come
-	// shared poiché di default vengono prese come shared quelle non specificate
-
 	// parallellizo i for, rendendoli unici con la clausola collapse. Ciò mi è possibile farlo
 	// poiché l'esecuzione dei cicli "associati" non altera la computazione dell'algoritmo.
 	// specifico la clausola schedule in particolare statica poiché preferisco tale ripartizione
-	// in chunck rispetto a quella di default.
-#pragma omp parallel for collapse(2) num_threads(max_threads) schedule(static)
+	// in chunck rispetto a quella di default. Sancisco il numero di thread pari a quelli massimi
+	// disponibili sulla macchina su cui lanciamo il programma. 
+#pragma omp parallel for collapse(2) num_threads(max_threads)
 	for (int i = 0; i < input->ns; ++i)
 	{
 		for (int j = 0; j < input->s; ++j)
@@ -331,21 +324,6 @@ void att(params *input)
 			prodottoAllMatriciBias(Q, K, V, input->ds, input->wq, input->wk, input->wv, input->bq, input->bk, input->bv, (i * avanza_tensore) + (j * avanza_matrice), input->n, input->nn, input->d);
 
 			prodottoMatriciInversa(intermedio, Q, K, radice, input->n, input->nn);
-
-			// float y;
-
-			// for (int k = 0; k < input->n; ++k)
-			// {
-			// 	int n_x_i = input->n * k;
-			// 	int indx_out = input->nn * k +  (i * avanza_tensore_out) + (j * avanza_matrice_out);
-			// 	for (int u = 0; u < input->nn; ++u)
-			// 	{
-			// 		y = 0;
-			// 		for (int x = 0; x < input->n; ++x)
-			// 			y += intermedio[n_x_i + x] * V[input->nn * x + u];
-			// 		input->out[indx_out + u] = y;
-			// 	}
-			// }
 
 			prodottoMatriciESalva(input->out, intermedio, V, (i * avanza_tensore_out) + (j * avanza_matrice_out), input->n, input->nn);
 
@@ -681,23 +659,20 @@ int main(int argc, char **argv)
 	// Attention Mechanism
 	//
 
-	// printf("MAX THREAD %d\n", omp_get_max_threads());
-
 	t = clock();
 
 	// effettivo tempo di orologio trascorso 
 	double inizio = omp_get_wtime();
 	att(input);
-
+	t = clock() - t;
 	// effettivo tempo di orologio trascorso
 	double fine = omp_get_wtime() - inizio;
 	printf("\nSystem real-time clock is %f\n", fine);
 
 	time = ((float)t) / CLOCKS_PER_SEC;
-	time/= omp_get_max_threads();
 
 	if (!input->silent)
-		printf("ATT time = %f secs\n", time);
+		printf("ATT time = %.3f secs\n", time);
 	else
 		printf("%.3f\n", time);
 

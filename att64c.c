@@ -343,7 +343,6 @@ void att(params *input)
 	// -------------------------------------------------
 	// Codificare qui l'algoritmo Attention mechanism
 	// -------------------------------------------------
-
 	double radice = sqrt(input->d);
 
 	int avanza_tensore = input->N * input->d / input->ns;
@@ -351,7 +350,7 @@ void att(params *input)
 	int avanza_tensore_out = input->N * input->nn / input->ns;
 	int avanza_matrice_out = input->n * input->nn;
 
-	// scorrimento dei tensori del DS
+#pragma omp parallel for collapse(2) num_threads(omp_get_max_threads())
 	for (int i = 0; i < input->ns; ++i)
 	{
 		for (int j = 0; j < input->s; ++j)
