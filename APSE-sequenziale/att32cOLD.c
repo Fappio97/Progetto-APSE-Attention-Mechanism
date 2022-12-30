@@ -250,29 +250,23 @@ extern void prova(params *input);
 void prodottoAllMatriciBias(MATRIX Q, MATRIX K, MATRIX V, MATRIX ds, MATRIX wq, MATRIX wk, MATRIX wv, VECTOR bq, VECTOR bk, VECTOR bv, int avanza, int n, int nn, int d)
 {
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
-	float q;
-	float k;
-	float v;
 
 	for (int i = 0; i < n; ++i)
 	{
-		int d_x_i_avanza = d * i + avanza;
 		for (int j = 0; j < nn; ++j)
 		{
-			q = 0;
-			k = 0;
-			v = 0;
-			int indx_matr = nn * i + j;
+			Q[nn * i + j] = 0;
+			K[nn * i + j] = 0;
+			V[nn * i + j] = 0;
 			for (int x = 0; x < d; ++x)
 			{
-				int indx_pesi = nn * x + j;
-				q += ds[d_x_i_avanza + x] * wq[indx_pesi];
-				k += ds[d_x_i_avanza + x] * wk[indx_pesi];
-				v += ds[d_x_i_avanza + x] * wv[indx_pesi];
+				Q[nn * i + j] += ds[d * i + avanza + x] * wq[nn * x + j];
+				K[nn * i + j] += ds[d * i + avanza + x] * wk[nn * x + j];
+				V[nn * i + j] += ds[d * i + avanza + x] * wv[nn * x + j];
 			}
-			Q[indx_matr] = q + bq[j];
-			K[indx_matr] = k + bk[j];
-			V[indx_matr] = v + bv[j];
+			Q[nn * i + j] += bq[j];
+			K[nn * i + j] += bk[j];
+			V[nn * i + j] += bv[j];
 		}
 	}
 }
@@ -292,7 +286,6 @@ float funzione(float value)
 void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice, int n, int nn)
 {
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x n
-	float a;
 
 	for (int i = 0; i < n; ++i)
 	{
@@ -300,11 +293,11 @@ void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice,
 		int n_x_i = n * i;
 		for (int j = 0; j < n; ++j)
 		{
-			a = 0;
+			intermedio[n * i + j] = 0;
 			for (int x = 0; x < nn; ++x)
-				a += A[nn_x_i + x] * B[nn * j + x];
-			a /= radice;
-			intermedio[n_x_i + j] = funzione(a);
+				intermedio[n * i + j] += A[nn * i + x] * B[nn * j + x];
+			intermedio[n * i + j] /= radice;
+			intermedio[n * i + j] = funzione(intermedio[n * i + j]);
 		}
 	}
 }
@@ -313,17 +306,13 @@ void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice,
 void prodottoMatriciESalva(MATRIX output, MATRIX A, MATRIX B, int avanza, int n, int nn)
 {
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
-	float y;
 	for (int i = 0; i < n; ++i)
 	{
-		int n_x_i = n * i;
-		int indx_out = nn * i + avanza;
 		for (int j = 0; j < nn; ++j)
 		{
-			y = 0;
+			output[nn * i + avanza + j] = 0;
 			for (int x = 0; x < n; ++x)
-				y += A[n_x_i + x] * B[nn * x + j];
-			output[indx_out + j] = y;
+				output[nn * i + avanza + j] += A[n * i + x] * B[nn * x + j];
 		}
 	}
 }
@@ -733,12 +722,12 @@ int main(int argc, char **argv)
 	t = clock();
 
 	// effettivo tempo di orologio trascorso 
-	// double inizio = omp_get_wtime();
+	double inizio = omp_get_wtime();
 	att(input);
 	t = clock() - t;
 	// effettivo tempo di orologio trascorso
-	// double fine = omp_get_wtime() - inizio;
-	// printf("\nSystem real-time clock is %f\n", fine);
+	double fine = omp_get_wtime() - inizio;
+	printf("\nSystem real-time clock is %f\n", fine);
 
 	time = ((float)t) / CLOCKS_PER_SEC;
 

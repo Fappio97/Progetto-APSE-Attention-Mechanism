@@ -288,7 +288,7 @@ double funzione(double value)
 }
 
 // funzione che fa il prodotto fra matrice e matrice trasposta, poi divisione e applicazione della funzione
-void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, double radice, int n, int nn)
+void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice, int n, int nn)
 {
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x n
 	double a;
@@ -344,6 +344,7 @@ void att(params *input)
 	// -------------------------------------------------
 
 	double radice = sqrt(input->d);
+
 	int avanza_tensore = input->N * input->d / input->ns;
 	int avanza_matrice = input->n * input->d;
 	int avanza_tensore_out = input->N * input->nn / input->ns;
@@ -354,7 +355,6 @@ void att(params *input)
 	{
 		for (int j = 0; j < input->s; ++j)
 		{
-
 			MATRIX Q = alloc_matrix(input->n, input->nn);
 			MATRIX K = alloc_matrix(input->n, input->nn);
 			MATRIX V = alloc_matrix(input->n, input->nn);
