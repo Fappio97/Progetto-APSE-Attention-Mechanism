@@ -202,6 +202,7 @@ void save_data(char *filename, void *X, int n, int k)
 
 extern void prova(params *input);
 extern void prodottoMatrici(MATRIX output, MATRIX A, MATRIX B, int n, int nn);
+extern void prodotto(MATRIX A, MATRIX b, int nn, int nn_x_i, int nn_x_j, type* a);
 
 // ######################################### COMPUTAZIONE NOSTRA ################################
 // funzione che stampa una matrice
@@ -304,28 +305,33 @@ float funzione(float value)
 
 void prodottoMatriciInversa(MATRIX intermedio, MATRIX A, MATRIX B, float radice, int n, int nn)
 {
+	type value;
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x n
-	float a;
-
 	for (int i = 0; i < n; ++i)
 	{
 		int nn_x_i = nn * i;
 		int n_x_i = n * i;
 		for (int j = 0; j < n; ++j)
 		{
-			a = 0;
+			value = 0;
 			int nn_x_j = nn * j;
-			for (int x = 0; x < nn; ++x)
-				a += A[nn_x_i + x] * B[nn_x_j + x];
-			a /= radice;
-			intermedio[n_x_i + j] = funzione(a);
+			prodotto(A, B, nn, nn_x_i, nn_x_j, &value);
+
+			// for (int x = 0; x < nn; ++x)
+				// value += A[nn_x_i + x] * B[nn_x_j + x];
+			//printf("Address of pointer pc: %p\n", pc);
+			// printf("Content of pointer pc: %f\n\n", value);
+			// return;
+			value /= radice;
+			intermedio[n_x_i + j] = funzione(value);
+
 		}
 	}
 }
 
 // funzione che fa un prodotto tra matrici e le salva su input->output
-/*
-void prodottoMatriciESalva(MATRIX output, MATRIX A, MATRIX B, int avanza, int n, int nn)
+
+void prodottoMatriciESalva2(MATRIX output, MATRIX A, MATRIX B, int avanza, int n, int nn)
 {
 	// la matrice risultate tra il prodotto di matrice avrà dimensione n x nn
 	float y;
@@ -342,7 +348,7 @@ void prodottoMatriciESalva(MATRIX output, MATRIX A, MATRIX B, int avanza, int n,
 		}
 	}
 }
-*/
+
 
 void applicazioneDellaFunzione(MATRIX intermedio, float radice, int n)
 {
@@ -479,7 +485,7 @@ void att(params *input)
 			// K diventa il nostro S^ nello pseudocodice della traccia
 			// tanto non mi serve più il contenuto dentro Q
 
-			
+//			prodottoMatriciESalva2(input->out, intermedio, V, (i * avanza_tensore_out) + (j * avanza_matrice_out), input->n, input->nn);
 			intermedio = rowColoumMajor(intermedio, input->n, input->n, 1);
 			V = rowColoumMajor(V, input->n, input->nn, 1);
 			
