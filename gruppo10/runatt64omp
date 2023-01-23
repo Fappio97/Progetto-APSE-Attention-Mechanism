@@ -1,0 +1,7 @@
+#!/bin/bash
+if [[ ! -e sseutils64.o ]]; then nasm -f elf64 sseutils64.nasm; fi;
+nasm -f elf64 att64omp.nasm
+gcc -m64 -msse -mavx -O0 -no-pie -fopenmp -sseutils64.o att64omp.o att64comp.c -o att64omp -lm
+pars="";
+for arg; do pars=$pars" "$arg; done;
+./att64comp $pars
